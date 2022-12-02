@@ -18,6 +18,7 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = '__all__'
+        read_only_fields = ('id',)
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -31,7 +32,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    # Поле настроенно только на чтение
     user = serializers.SlugRelatedField(
         read_only=True, slug_field='username'
     )
@@ -42,11 +42,18 @@ class FollowSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         following = get_object_or_404(User, username=data['following'])
-        follow = Follow.objects.filter(user=self.context['request'].user, following=following).exists()
+        follow = Follow.objects.filter(
+            user=self.context['request'].user, following=following
+        ).exists()
+
         if following == self.context['request'].user:
-            raise serializers.ValidationError("Вы не можете подписаться сам на себя")
+            raise serializers.ValidationError(
+                "Вы не можете подписаться на самого себя"
+            )
         if follow:
-            raise serializers.ValidationError("Вы уже подписаны на пользователя")
+            raise serializers.ValidationError(
+                "Вы уже подписаны на пользователя"
+            )
         return data
 
     class Meta:
